@@ -7,15 +7,6 @@ import os
 import re
 import sys
 
-
-def execute(args):
-    for dir in re.split(":", os.environ['PATH']):   # try each directory in the path
-        program = "%s/%s" % (dir, args[0])
-        try:
-            os.execve(program, args, os.environ)    # try to exec program
-        except FileNotFoundError:                   # ...expected
-            pass
-
 pid = os.getpid()
 while 1:
     os.write(1, "My Shell $ ".encode())             # Print My shell
@@ -45,7 +36,12 @@ while 1:
             os.set_inheritable(fd, True)
             args.remove('<')
 
-        execute(args)
+        for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
+            program = "%s/%s" % (dir, args[0])
+            try:
+                os.execve(program, args, os.environ)  # try to exec program
+            except FileNotFoundError:  # ...expected
+                pass
 
         os.write(2, ("Child:    Could not exec %s\n" % args[0]).encode())
         sys.exit(1)                                 # terminate with error
