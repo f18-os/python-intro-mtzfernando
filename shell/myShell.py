@@ -1,8 +1,5 @@
 #! /usr/bin/env python3
-"""
-    Name: Fernando Martinez
-    Class: CS 4375 OS
-"""
+
 import os
 import re
 import sys
