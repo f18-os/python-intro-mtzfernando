@@ -30,11 +30,18 @@ def pipe(arg):                                          # Function to take care 
                 pass
 
 pid = os.getpid()
+if "PS1" in os.environ:
+    pass
+else:
+    os.environ['PS1'] = "$"
+e = os.environ
 while 1:
-    os.write(1, "My Shell $ ".encode())             # Print My shell
+    os.write(1, e.get('PS1').encode())             # Print My shell
     command = os.read(0, 100).decode()              # Wait for command to execute
-    args = command.split()                          # Split the command into a list
 
+    if not command:
+        sys.exit(0)
+    args = command.split()                          # Split the command into a list
     if len(args) == 0:
         continue
     if args[0].lower() == 'exit':                   # If user types exit end the program
@@ -45,7 +52,6 @@ while 1:
     if rc < 0:
         os.write(2, ("fork failed, returning %d\n" % rc).encode())
         sys.exit(1)
-
     elif rc == 0:                                   # child
         if '|' in args:                             # Check if it is a pipe
             args.remove('|')                        # Remove the pipe from the list
@@ -63,15 +69,31 @@ while 1:
             os.set_inheritable(fd, True)
             args.remove('<')
 
+        if args[0].lower() == 'cd':
+            if args[1] == '..':
+                path = os.getcwd()
+                last = path.rfind('/')
+                path = path[0:last]
+                os.chdir(path)
+            else:
+                os.chdir(args[1])
+            if len(args) > 2:
+                args.pop(0)
+                args.pop(0)
+            else:
+                sys.exit(0)
+
         for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
             program = "%s/%s" % (dir, args[0])
             try:
-                os.execve(program, args, os.environ)   # try to exec program
-            except FileNotFoundError:  # ...expected
+                if '/' in args[0]:
+                    os.execve(args[0], args, os.environ)
+                else:
+                    os.execve(program, args, os.environ)    # try to exec program
+            except FileNotFoundError:                   # ...expected
                 pass
 
         os.write(2, ("Child:    Could not exec %s\n" % args[0]).encode())
         sys.exit(1)                                    # terminate with error
-
     else:                                              # parent (forked ok)
         childPidCode = os.wait()
